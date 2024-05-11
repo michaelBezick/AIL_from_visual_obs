@@ -63,7 +63,7 @@ python train_LAIL.py task=walker_walk agent=lail seed=0 GAN_loss=bce from_dem=tr
 
 ### Curves
 
-The curves for experiments in the paper can be found in the "curves" repository.
+The curves for experiments in the paper can be found in the [curves](https://github.com/VittorioGiammarino/AIL_from_visual_obs/tree/LAIfO/curves) repository.
 
 ### Citation
 
@@ -79,6 +79,34 @@ If you use this repo in your research, please consider citing
 }
 
 ```
+
+Acknowledgements
+
+This repo is based on the [drqv2](https://github.com/facebookresearch/drqv2) repo.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### Acknowledgement
 
