@@ -1,0 +1,5 @@
+- seed=3
+- task=cup_catch
+- GAN_loss=bce
+- from_dem=False
+- agent=drail_alternative

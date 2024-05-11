@@ -1,0 +1,5 @@
+- seed=2
+- task=finger_spin
+- GAN_loss=bce
+- from_dem=False
+- agent=drail_alternative

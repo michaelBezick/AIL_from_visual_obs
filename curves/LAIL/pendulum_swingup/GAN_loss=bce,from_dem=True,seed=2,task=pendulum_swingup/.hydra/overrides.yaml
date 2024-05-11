@@ -1,0 +1,5 @@
+- seed=2
+- task=pendulum_swingup
+- GAN_loss=bce
+- from_dem=True
+- agent=drail_alternative

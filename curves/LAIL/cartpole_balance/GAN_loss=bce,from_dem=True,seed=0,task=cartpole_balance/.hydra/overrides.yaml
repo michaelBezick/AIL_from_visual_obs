@@ -1,0 +1,5 @@
+- seed=0
+- task=cartpole_balance
+- GAN_loss=bce
+- from_dem=True
+- agent=drail_alternative

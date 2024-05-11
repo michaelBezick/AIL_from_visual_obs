@@ -1,0 +1,5 @@
+- seed=4
+- task=quadruped_walk
+- GAN_loss=bce
+- from_dem=True
+- agent=drail_alternative

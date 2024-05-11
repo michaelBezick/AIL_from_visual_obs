@@ -61,3 +61,25 @@ python train_VMAIL.py task=walker_walk seed=0 GAN_loss=bce from_dem=true
 python train_LAIL.py task=walker_walk agent=lail seed=0 GAN_loss=bce from_dem=true
 ```
 
+### Curves
+
+The curves for experiments in the paper can be found in the "curves" repository.
+
+### Citation
+
+If you use this repo in your research, please consider citing
+
+```shell
+
+@article{giammarino2023adversarial,
+  title={Adversarial imitation learning from visual observations using latent information},
+  author={Giammarino, Vittorio and Queeney, James and Paschalidis, Ioannis Ch},
+  journal={arXiv preprint arXiv:2309.17371},
+  year={2023}
+}
+
+```
+
+### Acknowledgement
+
+This repo is based on the [drqv2](https://github.com/facebookresearch/drqv2) repo.

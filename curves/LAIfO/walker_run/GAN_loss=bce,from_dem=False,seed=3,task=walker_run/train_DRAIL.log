@@ -1,0 +1,4 @@
+[2023-08-24 00:52:55,768][absl][INFO] - MUJOCO_GL=egl, attempting to import specified OpenGL backend.
+[2023-08-24 00:52:55,788][OpenGL.acceleratesupport][INFO] - OpenGL_accelerate module loaded
+[2023-08-24 00:52:55,793][OpenGL.arrays.arraydatatype][INFO] - Using accelerated ArrayDatatype
+[2023-08-24 00:52:55,885][absl][INFO] - MuJoCo library version is: 211
