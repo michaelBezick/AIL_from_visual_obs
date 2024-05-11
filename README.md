@@ -84,30 +84,3 @@ If you use this repo in your research, please consider citing
 
 This repo is based on the [drqv2](https://github.com/facebookresearch/drqv2) repo.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### Acknowledgement
-
-This repo is based on the [drqv2](https://github.com/facebookresearch/drqv2) repo.
