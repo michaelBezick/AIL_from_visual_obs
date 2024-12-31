@@ -189,6 +189,10 @@ class DDPG_Agent:
     def update_critic(self, obs, action, reward, next_obs, not_done, logger,
                       step):
 
+        print(obs.size())
+        print(next_obs.size())
+        exit()
+
         with torch.no_grad():
             stddev = utils.schedule(self.stddev_schedule, step)
             dist = self.actor(next_obs, stddev)
