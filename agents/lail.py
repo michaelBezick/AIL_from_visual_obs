@@ -361,7 +361,10 @@ class LailAgent:
 
     def act(self, obs, step, eval_mode):
         obs = torch.as_tensor(obs, device=self.device)
+        print(obs.size())
         obs = self.encoder(obs.unsqueeze(0))
+        print(obs.size())
+        exit()
         stddev = utils.schedule(self.stddev_schedule, step)
         dist = self.actor(obs, stddev)
         if eval_mode:
