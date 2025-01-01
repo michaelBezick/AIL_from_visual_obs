@@ -203,6 +203,9 @@ class SAC_Agent:
 
     def update_critic(self, obs, action, reward, next_obs, not_done, logger,
                       step):
+        print(obs.size())
+        print(next_obs.size())
+        exit()
 
         dist = self.actor(next_obs)
         next_action = dist.rsample()
