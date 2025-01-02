@@ -14,6 +14,7 @@ from utils_folder.utils_dreamer import Bernoulli
 from utils_folder.resnet import BasicBlock, ResNet84
 
 from transfer_learning.LucasKanadeOptFlow import optical_flow
+import matplotlib.pyplot as plt
 
 class RandomShiftsAug(nn.Module):
     def __init__(self, pad):
@@ -151,12 +152,12 @@ class Encoder(nn.Module):
 
         assert len(obs_shape) == 3
 
-        print(f"The observation shape input to encoder is {obs_shape}")
-
         self.repr_dim = 32 * 35 * 35
         self.feature_dim = (32,35,35)
 
-        self.convnet = nn.Sequential(nn.Conv2d(obs_shape[0], 32, 3, stride=2),
+        self.additional_dim_optical_flow = 4
+
+        self.convnet = nn.Sequential(nn.Conv2d(obs_shape[0] + self.additional_dim_optical_flow, 32, 3, stride=2),
                                      nn.ReLU(), nn.Conv2d(32, 32, 3, stride=1),
                                      nn.ReLU(), nn.Conv2d(32, 32, 3, stride=1),
                                      nn.ReLU(), nn.Conv2d(32, 32, 3, stride=1),
@@ -168,21 +169,137 @@ class Encoder(nn.Module):
         self.apply(utils.weight_init)
 
     def _optical_flow(self, obs):
-        # obs = cv2.cvtColor(img1)
-        pass
+
+        obs = torch.squeeze(obs)
+
+        num_frames = 3
+        num_pairs = num_frames-1
+
+        pairs = []
+
+        for i in range(num_pairs):
+            pairs.append((obs[i * 3 : i * 3 + 3, :, :], obs[(i + 1) * 3 :(i + 1) * 3 + 3, :, :]))
+
+        optical_flows = None
+
+        for i, pair in enumerate(pairs):
+            img1, img2 = pair
+
+            img1 = torch.squeeze(img1)
+            img2 = torch.squeeze(img2)
+
+            img1 = torch.permute(img1, (1, 2, 0))
+            img2 = torch.permute(img2, (1, 2, 0))
+
+            img1 = img1.detach().cpu().numpy()
+            img2= img2.detach().cpu().numpy()
+
+            img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+            img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+
+            U,V = optical_flow(img1, img2, 3, 0.05)
+
+            U = torch.tensor(U).unsqueeze(0)
+            V = torch.tensor(V).unsqueeze(0)
+
+            if i == 0:
+                optical_flows = torch.cat([U, V], dim=0)
+            else:
+                optical_flows = torch.cat([optical_flows, U], dim=0)
+                optical_flows = torch.cat([optical_flows, V], dim=0)
+
+        return optical_flows
+                
+
+
+
+    def min_max_norm(self, x):
+        if torch.min(x) != torch.max(x):
+            return (x - torch.min(x)) / (torch.max(x) - torch.min(x))
+        else:
+            return x
+
+    def save_optical_flow(self, obs1, obs2, U, V, output_file):
+        # Convert obs2 to RGB if needed
+        obs2_rgb = np.transpose(obs2.cpu().numpy(), (1, 2, 0))  # Convert to HxWxC format
+        obs2_rgb = (obs2_rgb * 255).astype(np.uint8)
+        
+        displacement = np.ones_like(obs2_rgb) * 255  # White background for displacements
+        line_color = (0, 0, 0)  # Black for arrows
+        
+        # Draw displacement vectors on a blank canvas
+        for i in range(U.shape[0]):
+            for j in range(U.shape[1]):
+                start_pixel = (j, i)
+                end_pixel = (int(j + V[i, j]), int(i + U[i, j]))
+
+                # Check if the displacement is non-zero and the endpoint is within bounds
+                if U[i, j] and V[i, j] and inRange(end_pixel, obs2_rgb.shape[:2]):
+                    displacement = cv2.arrowedLine(
+                        displacement, start_pixel, end_pixel, line_color, thickness=1
+                    )
+        
+        # Visualize the first image, second image, and displacements
+        obs1_img = np.transpose(obs1.cpu().numpy(), (1, 2, 0))  # Convert to HxWxC
+        obs1_img = (obs1_img * 255).astype(np.uint8)
+        
+        figure, axes = plt.subplots(1, 3, figsize=(15, 5))
+        axes[0].imshow(cv2.cvtColor(obs1_img, cv2.COLOR_BGR2RGB))
+        axes[0].set_title("First Frame")
+        axes[0].axis("off")
+        
+        axes[1].imshow(cv2.cvtColor(obs2_rgb, cv2.COLOR_BGR2RGB))
+        axes[1].set_title("Second Frame")
+        axes[1].axis("off")
+        
+        axes[2].imshow(displacement)
+        axes[2].set_title("Displacements")
+        axes[2].axis("off")
+        
+        plt.tight_layout()
+        plt.savefig(output_file, bbox_inches="tight", dpi=200)
+        #print(f"Saved result to {output_file}")
+        import os
+        print(f"Saving file to: {os.path.abspath(output_file)}")
+        print(f"Current working directory: {os.getcwd()}")
+
 
 
     def forward(self, obs):
+        #I believe that observation window is always 3 frames
+        #For walker_walk task, it is 9x84x84, which is 3 RGB images.
 
-        # U, V = self._optical_flow(obs)
+        optical_flows = self._optical_flow(obs)
+
+        optical_flows = self.min_max_norm(optical_flows)
+
+        optical_flows = optical_flows.to(obs.device)
+
+        optical_flows = optical_flows.unsqueeze(0)
+
 
         obs = obs / 255.0 - 0.5
 
         #The observation shape input to encoder is [9, 84, 84]
 
+        obs = torch.cat([obs, optical_flows], dim = 1)
+
+        obs = obs.float()
+
         h = self.convnet(obs)
         h = h.view(h.shape[0], -1)
+
         z = self.trunk(h)
+
+        obs1 = torch.squeeze(obs)[0:3, :, :]
+        obs2 = torch.squeeze(obs)[3:6, :, :]
+
+        U = torch.squeeze(obs)[9, :, :]
+        V = torch.squeeze(obs)[10, :, :]
+
+        self.save_optical_flow(obs1, obs2, U, V, "optical_flow.png")
+        exit()
+
         return z
         
 class Discriminator(nn.Module):
@@ -302,7 +419,7 @@ class LailAgent:
             self.encoder.expand_first_layer()
             print("Convolutional channel expansion finished: now can take in %d images as input." % self.encoder.n_images)
             encoder_lr = lr * encoder_lr_scale
-            print("Using pretraiend encoder")
+            print("Using pretrained encoder")
 
         else:
             self.encoder = Encoder(obs_shape, feature_dim).to(device)
@@ -380,10 +497,7 @@ class LailAgent:
 
     def act(self, obs, step, eval_mode):
         obs = torch.as_tensor(obs, device=self.device)
-        print(obs.size())
         obs = self.encoder(obs.unsqueeze(0))
-        print(obs.size())
-        exit()
         stddev = utils.schedule(self.stddev_schedule, step)
         dist = self.actor(obs, stddev)
         if eval_mode:

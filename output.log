@@ -1,0 +1,13 @@
+nohup: ignoring input
+/home/michaelbezick/.conda/envs/AdvIL_from_videos/lib/python3.9/site-packages/torch/utils/tensorboard/__init__.py:4: DeprecationWarning: distutils Version classes are deprecated. Use packaging.version instead.
+  if not hasattr(tensorboard, "__version__") or LooseVersion(
+/home/michaelbezick/.conda/envs/AdvIL_from_videos/lib/python3.9/site-packages/torch/utils/tensorboard/__init__.py:6: DeprecationWarning: distutils Version classes are deprecated. Use packaging.version instead.
+  ) < LooseVersion("1.15"):
+workspace: /home/michaelbezick/Repos/AIL_from_visual_obs/experiments/exp_lail/2025.01.02/1411_GAN_loss=bce,agent=lail,from_dem=false,seed=0,task=walker_walk
+Using new encoder
+loading expert target: /home/michaelbezick/Repos/AIL_from_visual_obs/expert_policies/snapshot_walker_walk_frame_skip_1.pt
+episode_number: 0
+episode_number: 1
+Average expert reward: 969.9639023882247, Total number of samples: 2000
+Saving file to: /home/michaelbezick/Repos/AIL_from_visual_obs/experiments/exp_lail/2025.01.02/1411_GAN_loss=bce,agent=lail,from_dem=false,seed=0,task=walker_walk/optical_flow.png
+Current working directory: /home/michaelbezick/Repos/AIL_from_visual_obs/experiments/exp_lail/2025.01.02/1411_GAN_loss=bce,agent=lail,from_dem=false,seed=0,task=walker_walk
