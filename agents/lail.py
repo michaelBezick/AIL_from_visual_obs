@@ -12,6 +12,8 @@ from utils_folder import utils
 from utils_folder.utils_dreamer import Bernoulli
 from utils_folder.resnet import BasicBlock, ResNet84
 
+from transfer_learning.LucasKanadeOptFlow import optical_flow
+
 class RandomShiftsAug(nn.Module):
     def __init__(self, pad):
         super().__init__()
@@ -147,6 +149,9 @@ class Encoder(nn.Module):
         super().__init__()
 
         assert len(obs_shape) == 3
+
+        print(f"The observation shape input to encoder is {obs_shape}")
+
         self.repr_dim = 32 * 35 * 35
         self.feature_dim = (32,35,35)
 
@@ -161,8 +166,14 @@ class Encoder(nn.Module):
 
         self.apply(utils.weight_init)
 
+    def _optical_flow(self, obs):
+        pass
+
+
     def forward(self, obs):
         obs = obs / 255.0 - 0.5
+
+
         h = self.convnet(obs)
         h = h.view(h.shape[0], -1)
         z = self.trunk(h)
