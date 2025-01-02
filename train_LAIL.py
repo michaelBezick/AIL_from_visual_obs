@@ -18,6 +18,14 @@ from utils_folder import utils
 from logger_folder.logger import Logger
 from video import TrainVideoRecorder, VideoRecorder, VideoRecorder_bio_expert
 
+if torch.cuda.is_available():
+    print("cuda good")
+else:
+    print("cuda bad")
+
+print(torch.cuda.get_device_name())
+
+
 torch.backends.cudnn.benchmark = True
 
 def make_agent(obs_spec, action_spec, pretrained_encoder_path, cfg):
@@ -114,8 +122,15 @@ class Workspace:
     def store_expert_transitions(self):
         step, episode, total_reward = 0, 0, 0
         eval_until_episode = utils.Until(self.cfg.num_expert_episodes)
+
+        print(self.cfg.num_expert_episodes)
+
+        episode_number = 0
         
         while eval_until_episode(episode):
+            print(f"episode_number: {episode_number}")
+            episode_number += 1
+
             obs, time_step = self.expert_env.reset()
             self.expert.reset()
             self.video_recorder.init(self.expert_env, enabled=(episode == 0))
@@ -129,7 +144,7 @@ class Workspace:
                 with torch.no_grad(), utils.eval_mode(self.expert):
                     action = self.expert.act(obs, self.global_step, eval_mode=True)
                 obs, reward, done, _, time_step = self.expert_env.step(action)    
-                
+
                 extended_time_step = self.expert_env.step_learn_from_pixels(time_step, action)
                 self.replay_buffer_expert.add(extended_time_step)
                 self.video_recorder.record(self.expert_env)
@@ -253,7 +268,10 @@ class Workspace:
         
     def load_expert(self, snapshot):
         with snapshot.open('rb') as f:
+            print("load binary working")
             payload = torch.load(f)
+            print("load binary loaded")
+
         self.expert = payload['agent']
 
 @hydra.main(config_path='config_folder/POMDP', config_name='config_lail')
@@ -263,10 +281,14 @@ def main(cfg):
     workspace = W(cfg)
     parent_dir = root_dir.parents[3]
     snapshot = parent_dir / f'expert_policies/snapshot_{cfg.task_name}_frame_skip_{cfg.frame_skip}.pt'
+    print(f"correct: snapshot_walker_walk_frame_skip_1.pt")
+    print(f"used: {snapshot}")
     assert snapshot.exists()
     print(f'loading expert target: {snapshot}')
     workspace.load_expert(snapshot)
+    print("got here")
     workspace.store_expert_transitions()
+    print("got here 1")
     workspace.train()
 
 if __name__ == '__main__':
