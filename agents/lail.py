@@ -16,6 +16,11 @@ from utils_folder.resnet import BasicBlock, ResNet84
 from transfer_learning.LucasKanadeOptFlow import optical_flow
 import matplotlib.pyplot as plt
 
+def inRange( cordinates, limits):
+	x,y = cordinates
+	X_Limit, Y_Limit = limits
+	return 0 <= x and x < X_Limit and 0 <= y and y < Y_Limit
+
 class RandomShiftsAug(nn.Module):
     def __init__(self, pad):
         super().__init__()
@@ -263,7 +268,34 @@ class Encoder(nn.Module):
         print(f"Saving file to: {os.path.abspath(output_file)}")
         print(f"Current working directory: {os.getcwd()}")
 
+    def drawSeparately(self, old_frame, new_frame, U, V, output_file):
 
+        img2 = new_frame
+        img1 = old_frame
+
+        displacement = np.ones_like(img2)
+        displacement.fill(255.)             #Fill the displacement plot with White background
+        line_color =  (0, 0, 0)
+        # draw the displacement vectors
+        for i in range(img2.shape[0]):
+            for j in range(img2.shape[1]):
+
+                start_pixel = (i,j)
+                end_pixel = ( int(i+U[i][j]), int(j+V[i][j]) )
+
+                #check if there is displacement for the corner and endpoint is in range
+                if U[i][j] and V[i][j] and inRange( end_pixel, img1.shape ):     
+                    displacement = cv2.arrowedLine( displacement, start_pixel, end_pixel, line_color, thickness =2)
+
+        figure, axes = plt.subplots(1,3)
+        axes[0].imshow(old_frame, cmap = "gray")
+        axes[0].set_title("first image")
+        axes[1].imshow(new_frame, cmap = "gray")
+        axes[1].set_title("second image")
+        axes[2].imshow(displacement, cmap = "gray")
+        axes[2].set_title("displacements")
+        figure.tight_layout()
+        plt.savefig(output_file, bbox_inches = "tight", dpi = 200)
 
     def forward(self, obs):
         #I believe that observation window is always 3 frames
@@ -297,8 +329,19 @@ class Encoder(nn.Module):
         U = torch.squeeze(obs)[9, :, :]
         V = torch.squeeze(obs)[10, :, :]
 
-        self.save_optical_flow(obs1, obs2, U, V, "optical_flow.png")
-        exit()
+        U = U.cpu().numpy()
+        V = V.cpu().numpy()
+
+        obs1 = torch.permute(obs1, (1, 2, 0))
+        obs2 = torch.permute(obs2, (1, 2, 0))
+
+        obs1 = obs1.cpu().numpy()
+        obs2 = obs2.cpu().numpy()
+
+        obs1 = cv2.cvtColor(obs1, cv2.COLOR_BGR2GRAY)
+        obs2 = cv2.cvtColor(obs2, cv2.COLOR_BGR2GRAY)
+
+        self.drawSeparately(obs1, obs2, U, V, "optical_flow.png")
 
         return z
         
