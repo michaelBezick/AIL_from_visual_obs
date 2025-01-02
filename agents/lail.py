@@ -285,10 +285,12 @@ class LailAgent:
             self.encoder.expand_first_layer()
             print("Convolutional channel expansion finished: now can take in %d images as input." % self.encoder.n_images)
             encoder_lr = lr * encoder_lr_scale
+            print("Using pretraiend encoder")
 
         else:
             self.encoder = Encoder(obs_shape, feature_dim).to(device)
             encoder_lr = lr 
+            print("Using new encoder")
 
         self.actor = Actor(action_shape, feature_dim, hidden_dim).to(device)
         self.critic = Critic(action_shape, feature_dim, hidden_dim).to(device)
