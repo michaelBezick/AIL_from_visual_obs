@@ -173,6 +173,8 @@ class Encoder(nn.Module):
 
         self.apply(utils.weight_init)
 
+        self.counter = 0
+
     def _optical_flow(self, obs):
 
         obs = torch.squeeze(obs)
@@ -224,51 +226,7 @@ class Encoder(nn.Module):
         else:
             return x
 
-    def save_optical_flow(self, obs1, obs2, U, V, output_file):
-        # Convert obs2 to RGB if needed
-        obs2_rgb = np.transpose(obs2.cpu().numpy(), (1, 2, 0))  # Convert to HxWxC format
-        obs2_rgb = (obs2_rgb * 255).astype(np.uint8)
-        
-        displacement = np.ones_like(obs2_rgb) * 255  # White background for displacements
-        line_color = (0, 0, 0)  # Black for arrows
-        
-        # Draw displacement vectors on a blank canvas
-        for i in range(U.shape[0]):
-            for j in range(U.shape[1]):
-                start_pixel = (j, i)
-                end_pixel = (int(j + V[i, j]), int(i + U[i, j]))
-
-                # Check if the displacement is non-zero and the endpoint is within bounds
-                if U[i, j] and V[i, j] and inRange(end_pixel, obs2_rgb.shape[:2]):
-                    displacement = cv2.arrowedLine(
-                        displacement, start_pixel, end_pixel, line_color, thickness=1
-                    )
-        
-        # Visualize the first image, second image, and displacements
-        obs1_img = np.transpose(obs1.cpu().numpy(), (1, 2, 0))  # Convert to HxWxC
-        obs1_img = (obs1_img * 255).astype(np.uint8)
-        
-        figure, axes = plt.subplots(1, 3, figsize=(15, 5))
-        axes[0].imshow(cv2.cvtColor(obs1_img, cv2.COLOR_BGR2RGB))
-        axes[0].set_title("First Frame")
-        axes[0].axis("off")
-        
-        axes[1].imshow(cv2.cvtColor(obs2_rgb, cv2.COLOR_BGR2RGB))
-        axes[1].set_title("Second Frame")
-        axes[1].axis("off")
-        
-        axes[2].imshow(displacement)
-        axes[2].set_title("Displacements")
-        axes[2].axis("off")
-        
-        plt.tight_layout()
-        plt.savefig(output_file, bbox_inches="tight", dpi=200)
-        #print(f"Saved result to {output_file}")
-        import os
-        print(f"Saving file to: {os.path.abspath(output_file)}")
-        print(f"Current working directory: {os.getcwd()}")
-
-    def drawSeparately(self, old_frame, new_frame, U, V, output_file):
+    def save_optical_flow(self, old_frame, new_frame, U, V, output_file):
 
         img2 = new_frame
         img1 = old_frame
@@ -303,7 +261,7 @@ class Encoder(nn.Module):
 
         optical_flows = self._optical_flow(obs)
 
-        optical_flows = self.min_max_norm(optical_flows)
+        #optical_flows = self.min_max_norm(optical_flows)
 
         optical_flows = optical_flows.to(obs.device)
 
@@ -341,7 +299,11 @@ class Encoder(nn.Module):
         obs1 = cv2.cvtColor(obs1, cv2.COLOR_BGR2GRAY)
         obs2 = cv2.cvtColor(obs2, cv2.COLOR_BGR2GRAY)
 
-        self.drawSeparately(obs1, obs2, U, V, "optical_flow.png")
+        self.counter += 1
+
+        if self.counter == 20:
+            self.save_optical_flow(obs1, obs2, U, V, "optical_flow.png")
+            exit()
 
         return z
         
