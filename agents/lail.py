@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import cv2
 from torch import distributions as torchd
 from torch import autograd
 from torch.nn.utils import spectral_norm 
@@ -167,12 +168,17 @@ class Encoder(nn.Module):
         self.apply(utils.weight_init)
 
     def _optical_flow(self, obs):
+        # obs = cv2.cvtColor(img1)
         pass
 
 
     def forward(self, obs):
+
+        # U, V = self._optical_flow(obs)
+
         obs = obs / 255.0 - 0.5
 
+        #The observation shape input to encoder is [9, 84, 84]
 
         h = self.convnet(obs)
         h = h.view(h.shape[0], -1)

@@ -234,6 +234,8 @@ class Workspace:
             episode_reward += time_step.reward
             self.replay_buffer.add(time_step)
             self.train_video_recorder.record(time_step.observation)
+            print(time_step.observation)
+            exit()
             episode_step += 1
             self._global_step += 1
 
