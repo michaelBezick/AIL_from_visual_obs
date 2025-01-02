@@ -19,7 +19,7 @@ def inRange( cordinates, limits):
 def optical_flow(old_frame, new_frame, window_size, min_quality=0.01):
 
     max_corners = 10000
-    min_distance = 0.1
+    min_distance = 0.05
     feature_list = cv2.goodFeaturesToTrack(old_frame, max_corners, min_quality, min_distance)
 
     w = int(window_size/2)

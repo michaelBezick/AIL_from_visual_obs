@@ -204,7 +204,7 @@ class Encoder(nn.Module):
             img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
             img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
 
-            U,V = optical_flow(img1, img2, 3, 0.05)
+            U,V = optical_flow(img1, img2, 8, 0.005)
 
             U = torch.tensor(U).unsqueeze(0)
             V = torch.tensor(V).unsqueeze(0)
