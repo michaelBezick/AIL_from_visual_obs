@@ -15,6 +15,8 @@ from utils_folder.resnet import BasicBlock, ResNet84
 
 from transfer_learning.LucasKanadeOptFlow import optical_flow
 import matplotlib.pyplot as plt
+from torchvision.models.optical_flow import raft_small
+import torchvision.transforms as T
 
 def inRange( cordinates, limits):
 	x,y = cordinates
@@ -175,6 +177,9 @@ class Encoder(nn.Module):
         self.apply(utils.weight_init)
 
         self.counter = 0
+        self.optical_flow_model = raft_small(pretained=True, progress=False).cuda()
+        self.optical_flow_model = self.optical_flow_model.eval()
+        self.transform = T.Compose([T.Resize(size=160,160)])
 
     def _optical_flow(self, obs):
 
@@ -266,6 +271,16 @@ class Encoder(nn.Module):
         figure.tight_layout()
         plt.savefig(output_file, bbox_inches = "tight", dpi = 200)
 
+    def optical_flow(self, x):
+        x = self.min_max_norm(x) * 2 - 1
+        x = self.transform(x)
+        flow = self.optical_flow_model(x[:, -3:, :, :], x[:, -6:-3, :, :])
+        flow = flow[-1]
+
+        return flow
+
+
+
     def forward(self, obs):
         #I believe that observation window is always 3 frames
         #For walker_walk task, it is 9x84x84, which is 3 RGB images.
@@ -278,6 +293,10 @@ class Encoder(nn.Module):
 
         """
         obs = obs / 255.0 - 0.5
+
+        flow = self.optical_flow(obs)
+        print(flow.size())
+        exit()
 
         #The observation shape input to encoder is [9, 84, 84]
         """
