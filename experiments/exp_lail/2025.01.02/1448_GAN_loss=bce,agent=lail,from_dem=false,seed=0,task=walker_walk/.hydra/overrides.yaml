@@ -1,5 +1,0 @@
-- task=walker_walk
-- agent=lail
-- seed=0
-- GAN_loss=bce
-- from_dem=false

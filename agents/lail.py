@@ -160,7 +160,8 @@ class Encoder(nn.Module):
         self.repr_dim = 32 * 35 * 35
         self.feature_dim = (32,35,35)
 
-        self.additional_dim_optical_flow = 4
+        #self.additional_dim_optical_flow = 4
+        self.additional_dim_optical_flow = 0
 
         self.convnet = nn.Sequential(nn.Conv2d(obs_shape[0] + self.additional_dim_optical_flow, 32, 3, stride=2),
                                      nn.ReLU(), nn.Conv2d(32, 32, 3, stride=1),
@@ -177,45 +178,55 @@ class Encoder(nn.Module):
 
     def _optical_flow(self, obs):
 
-        obs = torch.squeeze(obs)
+        #obs = torch.squeeze(obs)
 
-        num_frames = 3
+        num_frames = obs.size()[1] // 3
         num_pairs = num_frames-1
 
-        pairs = []
+        og_obs = obs
 
-        for i in range(num_pairs):
-            pairs.append((obs[i * 3 : i * 3 + 3, :, :], obs[(i + 1) * 3 :(i + 1) * 3 + 3, :, :]))
+        return_tensor = torch.zeros(obs.size()[0], num_pairs * 2, obs.size()[2], obs.size()[3])
 
-        optical_flows = None
+        for batch_dim in range(og_obs.size()[0]):
 
-        for i, pair in enumerate(pairs):
-            img1, img2 = pair
+            obs = og_obs[batch_dim, :, :, :]
 
-            img1 = torch.squeeze(img1)
-            img2 = torch.squeeze(img2)
+            pairs = []
 
-            img1 = torch.permute(img1, (1, 2, 0))
-            img2 = torch.permute(img2, (1, 2, 0))
+            for i in range(num_pairs):
+                pairs.append((obs[i * 3 : i * 3 + 3, :, :], obs[(i + 1) * 3 :(i + 1) * 3 + 3, :, :]))
 
-            img1 = img1.detach().cpu().numpy()
-            img2= img2.detach().cpu().numpy()
+            optical_flows = None
 
-            img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-            img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+            for i, pair in enumerate(pairs):
+                img1, img2 = pair
 
-            U,V = optical_flow(img1, img2, 8, 0.005)
+                img1 = torch.squeeze(img1)
+                img2 = torch.squeeze(img2)
 
-            U = torch.tensor(U).unsqueeze(0)
-            V = torch.tensor(V).unsqueeze(0)
+                img1 = torch.permute(img1, (1, 2, 0))
+                img2 = torch.permute(img2, (1, 2, 0))
 
-            if i == 0:
-                optical_flows = torch.cat([U, V], dim=0)
-            else:
-                optical_flows = torch.cat([optical_flows, U], dim=0)
-                optical_flows = torch.cat([optical_flows, V], dim=0)
+                img1 = img1.detach().cpu().numpy()
+                img2= img2.detach().cpu().numpy()
 
-        return optical_flows
+                img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+                img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+
+                U,V = optical_flow(img1, img2, 8, 0.005)
+
+                U = torch.tensor(U).unsqueeze(0)
+                V = torch.tensor(V).unsqueeze(0)
+
+                if i == 0:
+                    optical_flows = torch.cat([U, V], dim=0)
+                else:
+                    optical_flows = torch.cat([optical_flows, U], dim=0)
+                    optical_flows = torch.cat([optical_flows, V], dim=0)
+
+            return_tensor[batch_dim, :, :, :] = optical_flows
+
+        return return_tensor
                 
 
 
@@ -258,52 +269,50 @@ class Encoder(nn.Module):
     def forward(self, obs):
         #I believe that observation window is always 3 frames
         #For walker_walk task, it is 9x84x84, which is 3 RGB images.
-
+        """
         optical_flows = self._optical_flow(obs)
 
-        #optical_flows = self.min_max_norm(optical_flows)
+        optical_flows = self.min_max_norm(optical_flows)
 
         optical_flows = optical_flows.to(obs.device)
 
-        optical_flows = optical_flows.unsqueeze(0)
-
-
+        """
         obs = obs / 255.0 - 0.5
 
         #The observation shape input to encoder is [9, 84, 84]
-
+        """
         obs = torch.cat([obs, optical_flows], dim = 1)
 
         obs = obs.float()
-
+        """
         h = self.convnet(obs)
         h = h.view(h.shape[0], -1)
 
         z = self.trunk(h)
 
-        obs1 = torch.squeeze(obs)[0:3, :, :]
-        obs2 = torch.squeeze(obs)[3:6, :, :]
+        #obs1 = torch.squeeze(obs)[0:3, :, :]
+        #obs2 = torch.squeeze(obs)[3:6, :, :]
 
-        U = torch.squeeze(obs)[9, :, :]
-        V = torch.squeeze(obs)[10, :, :]
+        #U = torch.squeeze(obs)[9, :, :]
+        #V = torch.squeeze(obs)[10, :, :]
 
-        U = U.cpu().numpy()
-        V = V.cpu().numpy()
+        #U = U.cpu().numpy()
+        #V = V.cpu().numpy()
 
-        obs1 = torch.permute(obs1, (1, 2, 0))
-        obs2 = torch.permute(obs2, (1, 2, 0))
+        #obs1 = torch.permute(obs1, (1, 2, 0))
+        #obs2 = torch.permute(obs2, (1, 2, 0))
 
-        obs1 = obs1.cpu().numpy()
-        obs2 = obs2.cpu().numpy()
+        #obs1 = obs1.cpu().numpy()
+        #obs2 = obs2.cpu().numpy()
 
-        obs1 = cv2.cvtColor(obs1, cv2.COLOR_BGR2GRAY)
-        obs2 = cv2.cvtColor(obs2, cv2.COLOR_BGR2GRAY)
+        #obs1 = cv2.cvtColor(obs1, cv2.COLOR_BGR2GRAY)
+        #obs2 = cv2.cvtColor(obs2, cv2.COLOR_BGR2GRAY)
 
-        self.counter += 1
+        #self.counter += 1
 
-        if self.counter == 20:
-            self.save_optical_flow(obs1, obs2, U, V, "optical_flow.png")
-            exit()
+        #if self.counter == 20:
+        #    self.save_optical_flow(obs1, obs2, U, V, "optical_flow.png")
+        #    exit()
 
         return z
         

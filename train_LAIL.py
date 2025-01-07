@@ -114,8 +114,8 @@ class Workspace:
     def store_expert_transitions(self):
         step, episode, total_reward = 0, 0, 0
 
-        #eval_until_episode = utils.Until(self.cfg.num_expert_episodes)
-        eval_until_episode = utils.Until(2)
+        eval_until_episode = utils.Until(self.cfg.num_expert_episodes)
+        #eval_until_episode = utils.Until(2)
 
         episode_number = 0
         
@@ -162,7 +162,6 @@ class Workspace:
                                             self.global_step,
                                             eval_mode=True)
                 
-                print(action)
                 time_step = self.eval_env.step(action)
                 self.video_recorder.record(self.eval_env)
                 total_reward += time_step.reward
@@ -242,8 +241,6 @@ class Workspace:
             episode_reward += time_step.reward
             self.replay_buffer.add(time_step)
             self.train_video_recorder.record(time_step.observation)
-            print(time_step.observation)
-            exit()
             episode_step += 1
             self._global_step += 1
 
