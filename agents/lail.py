@@ -293,7 +293,7 @@ class Encoder(nn.Module):
         for row_idx, row in enumerate(imgs):
             for col_idx, img in enumerate(row):
                 ax = axs[row_idx, col_idx]
-                img = F.to_pil_image(img.to("cpu"))
+                img = FT.to_pil_image(img.to("cpu"))
                 ax.imshow(np.asarray(img), **imshow_kwargs)
                 ax.set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
 
