@@ -179,59 +179,59 @@ class Encoder(nn.Module):
         self.counter = 0
         self.optical_flow_model = raft_small(pretrained=True, progress=False).cuda()
         self.optical_flow_model = self.optical_flow_model.eval()
-        self.transform = T.Compose([T.Resize(size=(160,160))])
+        # self.transform = T.Compose([T.Resize(size=(160,160))])
 
-    def _optical_flow(self, obs):
-
-        #obs = torch.squeeze(obs)
-
-        num_frames = obs.size()[1] // 3
-        num_pairs = num_frames-1
-
-        og_obs = obs
-
-        return_tensor = torch.zeros(obs.size()[0], num_pairs * 2, obs.size()[2], obs.size()[3])
-
-        for batch_dim in range(og_obs.size()[0]):
-
-            obs = og_obs[batch_dim, :, :, :]
-
-            pairs = []
-
-            for i in range(num_pairs):
-                pairs.append((obs[i * 3 : i * 3 + 3, :, :], obs[(i + 1) * 3 :(i + 1) * 3 + 3, :, :]))
-
-            optical_flows = None
-
-            for i, pair in enumerate(pairs):
-                img1, img2 = pair
-
-                img1 = torch.squeeze(img1)
-                img2 = torch.squeeze(img2)
-
-                img1 = torch.permute(img1, (1, 2, 0))
-                img2 = torch.permute(img2, (1, 2, 0))
-
-                img1 = img1.detach().cpu().numpy()
-                img2= img2.detach().cpu().numpy()
-
-                img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-                img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-
-                U,V = optical_flow(img1, img2, 8, 0.005)
-
-                U = torch.tensor(U).unsqueeze(0)
-                V = torch.tensor(V).unsqueeze(0)
-
-                if i == 0:
-                    optical_flows = torch.cat([U, V], dim=0)
-                else:
-                    optical_flows = torch.cat([optical_flows, U], dim=0)
-                    optical_flows = torch.cat([optical_flows, V], dim=0)
-
-            return_tensor[batch_dim, :, :, :] = optical_flows
-
-        return return_tensor
+    # def _optical_flow(self, obs):
+    #
+    #     #obs = torch.squeeze(obs)
+    #
+    #     num_frames = obs.size()[1] // 3
+    #     num_pairs = num_frames-1
+    #
+    #     og_obs = obs
+    #
+    #     return_tensor = torch.zeros(obs.size()[0], num_pairs * 2, obs.size()[2], obs.size()[3])
+    #
+    #     for batch_dim in range(og_obs.size()[0]):
+    #
+    #         obs = og_obs[batch_dim, :, :, :]
+    #
+    #         pairs = []
+    #
+    #         for i in range(num_pairs):
+    #             pairs.append((obs[i * 3 : i * 3 + 3, :, :], obs[(i + 1) * 3 :(i + 1) * 3 + 3, :, :]))
+    #
+    #         optical_flows = None
+    #
+    #         for i, pair in enumerate(pairs):
+    #             img1, img2 = pair
+    #
+    #             img1 = torch.squeeze(img1)
+    #             img2 = torch.squeeze(img2)
+    #
+    #             img1 = torch.permute(img1, (1, 2, 0))
+    #             img2 = torch.permute(img2, (1, 2, 0))
+    #
+    #             img1 = img1.detach().cpu().numpy()
+    #             img2= img2.detach().cpu().numpy()
+    #
+    #             img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    #             img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+    #
+    #             U,V = optical_flow(img1, img2, 8, 0.005)
+    #
+    #             U = torch.tensor(U).unsqueeze(0)
+    #             V = torch.tensor(V).unsqueeze(0)
+    #
+    #             if i == 0:
+    #                 optical_flows = torch.cat([U, V], dim=0)
+    #             else:
+    #                 optical_flows = torch.cat([optical_flows, U], dim=0)
+    #                 optical_flows = torch.cat([optical_flows, V], dim=0)
+    #
+    #         return_tensor[batch_dim, :, :, :] = optical_flows
+    #
+    #     return return_tensor
                 
 
 
@@ -242,34 +242,34 @@ class Encoder(nn.Module):
         else:
             return x
 
-    def save_optical_flow(self, old_frame, new_frame, U, V, output_file):
-
-        img2 = new_frame
-        img1 = old_frame
-
-        displacement = np.ones_like(img2)
-        displacement.fill(255.)             #Fill the displacement plot with White background
-        line_color =  (0, 0, 0)
-        # draw the displacement vectors
-        for i in range(img2.shape[0]):
-            for j in range(img2.shape[1]):
-
-                start_pixel = (i,j)
-                end_pixel = ( int(i+U[i][j]), int(j+V[i][j]) )
-
-                #check if there is displacement for the corner and endpoint is in range
-                if U[i][j] and V[i][j] and inRange( end_pixel, img1.shape ):     
-                    displacement = cv2.arrowedLine( displacement, start_pixel, end_pixel, line_color, thickness =2)
-
-        figure, axes = plt.subplots(1,3)
-        axes[0].imshow(old_frame, cmap = "gray")
-        axes[0].set_title("first image")
-        axes[1].imshow(new_frame, cmap = "gray")
-        axes[1].set_title("second image")
-        axes[2].imshow(displacement, cmap = "gray")
-        axes[2].set_title("displacements")
-        figure.tight_layout()
-        plt.savefig(output_file, bbox_inches = "tight", dpi = 200)
+    # def save_optical_flow(self, old_frame, new_frame, U, V, output_file):
+    #
+    #     img2 = new_frame
+    #     img1 = old_frame
+    #
+    #     displacement = np.ones_like(img2)
+    #     displacement.fill(255.)             #Fill the displacement plot with White background
+    #     line_color =  (0, 0, 0)
+    #     # draw the displacement vectors
+    #     for i in range(img2.shape[0]):
+    #         for j in range(img2.shape[1]):
+    #
+    #             start_pixel = (i,j)
+    #             end_pixel = ( int(i+U[i][j]), int(j+V[i][j]) )
+    #
+    #             #check if there is displacement for the corner and endpoint is in range
+    #             if U[i][j] and V[i][j] and inRange( end_pixel, img1.shape ):     
+    #                 displacement = cv2.arrowedLine( displacement, start_pixel, end_pixel, line_color, thickness =2)
+    #
+    #     figure, axes = plt.subplots(1,3)
+    #     axes[0].imshow(old_frame, cmap = "gray")
+    #     axes[0].set_title("first image")
+    #     axes[1].imshow(new_frame, cmap = "gray")
+    #     axes[1].set_title("second image")
+    #     axes[2].imshow(displacement, cmap = "gray")
+    #     axes[2].set_title("displacements")
+    #     figure.tight_layout()
+    #     plt.savefig(output_file, bbox_inches = "tight", dpi = 200)
 
     def optical_flow(self, x):
         x = self.min_max_norm(x) * 2 - 1
@@ -282,59 +282,54 @@ class Encoder(nn.Module):
 
         return flow
 
+    def plot(self, imgs, **imshow_kwargs):
+        if not isinstance(imgs[0], list):
+            # Make a 2d grid even if there's just 1 row
+            imgs = [imgs]
+
+        num_rows = len(imgs)
+        num_cols = len(imgs[0])
+        _, axs = plt.subplots(nrows=num_rows, ncols=num_cols, squeeze=False)
+        for row_idx, row in enumerate(imgs):
+            for col_idx, img in enumerate(row):
+                ax = axs[row_idx, col_idx]
+                img = F.to_pil_image(img.to("cpu"))
+                ax.imshow(np.asarray(img), **imshow_kwargs)
+                ax.set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
+
+    plt.tight_layout()
+    plt.savefig("predicted_flows.jpg")
 
 
     def forward(self, obs):
         #I believe that observation window is always 3 frames
         #For walker_walk task, it is 9x84x84, which is 3 RGB images.
-        """
-        optical_flows = self._optical_flow(obs)
-
-        optical_flows = self.min_max_norm(optical_flows)
-
-        optical_flows = optical_flows.to(obs.device)
-
-        """
         obs = obs / 255.0 - 0.5
 
         flow = self.optical_flow(obs)
 
-        #The observation shape input to encoder is [9, 84, 84]
-        """
-        obs = torch.cat([obs, optical_flows], dim = 1)
+        print(torch.min(flow))
+        print(torch.max(flow))
 
-        obs = obs.float()
-        """
+        """new plotting"""
+
+        img = [(img + 1) / 2 for img in obs]
+
+        grid = [[img, flow_img] for (img, flow_img) in zip(img, flow)]
+
+        self.plot(grid)
+        exit()
+
+        """end"""
+
+
+        #The observation shape input to encoder is [9, 84, 84]
         obs = torch.cat([obs, flow], dim=1)
 
         h = self.convnet(obs)
         h = h.view(h.shape[0], -1)
 
         z = self.trunk(h)
-
-        #obs1 = torch.squeeze(obs)[0:3, :, :]
-        #obs2 = torch.squeeze(obs)[3:6, :, :]
-
-        #U = torch.squeeze(obs)[9, :, :]
-        #V = torch.squeeze(obs)[10, :, :]
-
-        #U = U.cpu().numpy()
-        #V = V.cpu().numpy()
-
-        #obs1 = torch.permute(obs1, (1, 2, 0))
-        #obs2 = torch.permute(obs2, (1, 2, 0))
-
-        #obs1 = obs1.cpu().numpy()
-        #obs2 = obs2.cpu().numpy()
-
-        #obs1 = cv2.cvtColor(obs1, cv2.COLOR_BGR2GRAY)
-        #obs2 = cv2.cvtColor(obs2, cv2.COLOR_BGR2GRAY)
-
-        #self.counter += 1
-
-        #if self.counter == 20:
-        #    self.save_optical_flow(obs1, obs2, U, V, "optical_flow.png")
-        #    exit()
 
         return z
         

@@ -114,8 +114,8 @@ class Workspace:
     def store_expert_transitions(self):
         step, episode, total_reward = 0, 0, 0
 
-        eval_until_episode = utils.Until(self.cfg.num_expert_episodes)
-        #eval_until_episode = utils.Until(2)
+        # eval_until_episode = utils.Until(self.cfg.num_expert_episodes)
+        eval_until_episode = utils.Until(2)
 
         episode_number = 0
         
