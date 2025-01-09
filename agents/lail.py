@@ -17,6 +17,7 @@ from transfer_learning.LucasKanadeOptFlow import optical_flow
 import matplotlib.pyplot as plt
 from torchvision.models.optical_flow import raft_small
 import torchvision.transforms as T
+import torchvision.transforms.functional as FT
 
 def inRange( cordinates, limits):
 	x,y = cordinates
@@ -162,8 +163,7 @@ class Encoder(nn.Module):
         self.repr_dim = 32 * 35 * 35
         self.feature_dim = (32,35,35)
 
-        #self.additional_dim_optical_flow = 4
-        self.additional_dim_optical_flow = 0
+        self.additional_dim_optical_flow = 2
 
         self.convnet = nn.Sequential(nn.Conv2d(obs_shape[0] + self.additional_dim_optical_flow, 32, 3, stride=2),
                                      nn.ReLU(), nn.Conv2d(32, 32, 3, stride=1),
@@ -177,9 +177,9 @@ class Encoder(nn.Module):
         self.apply(utils.weight_init)
 
         self.counter = 0
-        self.optical_flow_model = raft_small(pretained=True, progress=False).cuda()
+        self.optical_flow_model = raft_small(pretrained=True, progress=False).cuda()
         self.optical_flow_model = self.optical_flow_model.eval()
-        self.transform = T.Compose([T.Resize(size=160,160)])
+        self.transform = T.Compose([T.Resize(size=(160,160))])
 
     def _optical_flow(self, obs):
 
@@ -273,9 +273,12 @@ class Encoder(nn.Module):
 
     def optical_flow(self, x):
         x = self.min_max_norm(x) * 2 - 1
-        x = self.transform(x)
+        x = FT.resize(x, size=(88,88))
         flow = self.optical_flow_model(x[:, -3:, :, :], x[:, -6:-3, :, :])
         flow = flow[-1]
+        flow = FT.resize(flow, size=(84,84))
+        
+        assert not torch.isnan(flow).any()
 
         return flow
 
@@ -295,8 +298,6 @@ class Encoder(nn.Module):
         obs = obs / 255.0 - 0.5
 
         flow = self.optical_flow(obs)
-        print(flow.size())
-        exit()
 
         #The observation shape input to encoder is [9, 84, 84]
         """
@@ -304,6 +305,8 @@ class Encoder(nn.Module):
 
         obs = obs.float()
         """
+        obs = torch.cat([obs, flow], dim=1)
+
         h = self.convnet(obs)
         h = h.view(h.shape[0], -1)
 
