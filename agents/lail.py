@@ -20,6 +20,51 @@ import torchvision.transforms as T
 import torchvision.transforms.functional as FT
 from torchvision.utils import flow_to_image
 
+class AttnBlock(nn.Module):
+    def __init__(self, in_channels):
+        super().__init__()
+        self.in_channels = in_channels
+
+        self.norm = torch.nn.GroupNorm(num_groups=8, num_channels=self.in_channels)
+        self.q = torch.nn.Conv2d(
+            in_channels, in_channels, kernel_size=1, stride=1, padding=0
+        )
+        self.k = torch.nn.Conv2d(
+            in_channels, in_channels, kernel_size=1, stride=1, padding=0
+        )
+        self.v = torch.nn.Conv2d(
+            in_channels, in_channels, kernel_size=1, stride=1, padding=0
+        )
+        self.proj_out = torch.nn.Conv2d(
+            in_channels, in_channels, kernel_size=1, stride=1, padding=0
+        )
+
+    def forward(self, x):
+        h_ = x
+        h_ = self.norm(h_)
+        q = self.q(h_)
+        k = self.k(h_)
+        v = self.v(h_)
+
+        # compute attention
+        b, c, h, w = q.shape
+        q = q.reshape(b, c, h * w)
+        q = q.permute(0, 2, 1)  # b,hw,c
+        k = k.reshape(b, c, h * w)  # b,c,hw
+        w_ = torch.bmm(q, k)  # b,hw,hw    w[b,i,j]=sum_c q[b,i,c]k[b,c,j]
+        w_ = w_ * (int(c) ** (-0.5))
+        w_ = torch.nn.functional.softmax(w_, dim=2)
+
+        # attend to values
+        v = v.reshape(b, c, h * w)
+        w_ = w_.permute(0, 2, 1)  # b,hw,hw (first hw of k, second of q)
+        h_ = torch.bmm(v, w_)  # b, c,hw (hw of q) h_[b,c,j] = sum_i v[b,c,i] w_[b,i,j]
+        h_ = h_.reshape(b, c, h, w)
+
+        h_ = self.proj_out(h_)
+
+        return x + h_
+
 def inRange( cordinates, limits):
 	x,y = cordinates
 	X_Limit, Y_Limit = limits
@@ -180,6 +225,7 @@ class Encoder(nn.Module):
         self.counter = 0
         self.optical_flow_model = raft_small(pretrained=True, progress=False).cuda()
         self.optical_flow_model = self.optical_flow_model.eval()
+        self.attention = AttnBlock(obs_shape[0] + self.additional_dim_optical_flow)
         # self.transform = T.Compose([T.Resize(size=(160,160))])
 
     # def _optical_flow(self, obs):
@@ -333,6 +379,8 @@ class Encoder(nn.Module):
 
         #The observation shape input to encoder is [9, 84, 84]
         obs = torch.cat([obs, flow], dim=1)
+
+        obs = self.attention(obs)
 
         h = self.convnet(obs)
         h = h.view(h.shape[0], -1)
