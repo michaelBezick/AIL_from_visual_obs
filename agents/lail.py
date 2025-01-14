@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 from torchvision.models.optical_flow import raft_small
 import torchvision.transforms as T
 import torchvision.transforms.functional as FT
+from torchvision.utils import flow_to_image
 
 def inRange( cordinates, limits):
 	x,y = cordinates
@@ -306,19 +307,26 @@ class Encoder(nn.Module):
         #For walker_walk task, it is 9x84x84, which is 3 RGB images.
         obs = obs / 255.0 - 0.5
 
-        flow = self.optical_flow(obs)
+        with torch.no_grad():
+            flow = self.optical_flow(obs)
 
-        print(torch.min(flow))
-        print(torch.max(flow))
+        flow = self.min_max_norm(flow)
+
+        flow = flow - 1
+
 
         """new plotting"""
+        #flow = flow_to_image(flow)
 
-        img = [(img + 1) / 2 for img in obs]
+        #new_obs = obs[:, -3:, :, :]
+        #new_obs = self.min_max_norm(new_obs)
 
-        grid = [[img, flow_img] for (img, flow_img) in zip(img, flow)]
+        #img = [img for img in new_obs]
 
-        self.plot(grid)
-        exit()
+        #grid = [[img, flow_img] for (img, flow_img) in zip(img, flow)]
+
+        #self.plot(grid)
+        #exit()
 
         """end"""
 
