@@ -211,8 +211,9 @@ class Encoder(nn.Module):
 
         self.additional_dim_optical_flow = 2
 
-        self.convnet = nn.Sequential(nn.Conv2d(obs_shape[0] + self.additional_dim_optical_flow, 32, 3, stride=2),
-                                     nn.ReLU(), nn.Conv2d(32, 32, 3, stride=1),
+        self.initial_conv = nn.Conv2d(obs_shape[0] + self.additional_dim_optical_flow, 32, 3, stride=2)
+        self.relu = nn.ReLU()
+        self.convnet = nn.Sequential(nn.Conv2d(32, 32, 3, stride=1),
                                      nn.ReLU(), nn.Conv2d(32, 32, 3, stride=1),
                                      nn.ReLU(), nn.Conv2d(32, 32, 3, stride=1),
                                      nn.ReLU())
@@ -225,7 +226,7 @@ class Encoder(nn.Module):
         self.counter = 0
         self.optical_flow_model = raft_small(pretrained=True, progress=False).cuda()
         self.optical_flow_model = self.optical_flow_model.eval()
-        self.attention = AttnBlock(obs_shape[0] + self.additional_dim_optical_flow)
+        self.attention = AttnBlock(32)
         # self.transform = T.Compose([T.Resize(size=(160,160))])
 
     # def _optical_flow(self, obs):
@@ -379,10 +380,11 @@ class Encoder(nn.Module):
 
         #The observation shape input to encoder is [9, 84, 84]
         obs = torch.cat([obs, flow], dim=1)
+        h = self.initial_conv(obs)
+        h = self.attention(h)
+        h = self.relu(h)
 
-        obs = self.attention(obs)
-
-        h = self.convnet(obs)
+        h = self.convnet(h)
         h = h.view(h.shape[0], -1)
 
         z = self.trunk(h)
